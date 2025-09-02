@@ -761,7 +761,11 @@
       </ul>
   </div>
 
+  </div> <!-- Close main-application div -->
+
   <script>
+    document.addEventListener('DOMContentLoaded', () => {
+
     // --- RING BUFFER RECORDER ---
     function createRingBufferRecorder(stream, onClipReady, config) {
         if (!stream || !stream.active || typeof MediaRecorder === 'undefined') {
@@ -842,46 +846,44 @@
         };
         return { start, stop, triggerAlert, signalNormalcy };
     }
-
-    document.addEventListener('DOMContentLoaded', () => {
-    
-        // --- CONFIGURATION FOR PRESELECTED LOCAL VIDEOS ---
+        
+    // --- CONFIGURATION FOR PRESELECTED LOCAL VIDEOS ---
     const PRESELECTED_VIDEOS = [
         { 
           name: "Eric Dier vs. Fan", 
           duration: "0:11",
-          thumbnailUrl: "/assets/th.JPG",
-          videoPath: "/assets/Eric Dier punching a bully fan (Spurs vs. Norwich).mp4",
+          thumbnailUrl: "assets/th.JPG",
+          videoPath: "/home/ubuntu/violence_detection/violence_detection/Avertix_Auth/frontend/assets/Eric Dier punching a bully fan (Spurs vs. Norwich).mp4",
         },
         { 
           name: "Fans celebrating", 
           duration: "0:12",
-          thumbnailUrl: "/assets/th2.JPG",
-          videoPath: "/assets/another_fan_video.mp4",
+          thumbnailUrl: "assets/th2.JPG",
+          videoPath: "/home/ubuntu/violence_detection/violence_detection/Avertix_Auth/frontend/assets/another_fan_video.mp4",
         },
         { 
           name: "Projectiles and disaster", 
           duration: "0:05",
-          thumbnailUrl: "/assets/th3.JPG",
-          videoPath: "/assets/14.mp4",
+          thumbnailUrl: "assets/th3.JPG",
+          videoPath: "/home/ubuntu/violence_detection/violence_detection/Avertix_Auth/frontend/assets/14.mp4",
         },
         { 
           name: "Fans fight outside of stadium", 
           duration: "0:20",
-          thumbnailUrl: "/assets/th4.JPG",
-          videoPath: "/assets/1.mp4",
+          thumbnailUrl: "assets/th4.JPG",
+          videoPath: "/home/ubuntu/violence_detection/violence_detection/Avertix_Auth/frontend/assets/1.mp4",
         },
         { 
           name: "Fans Celebrating with a LOT of passion", 
           duration: "0:18",
-          thumbnailUrl: "/assets/th5.JPG",
-          videoPath: "/assets/Fans Celebration in Unison.mp4",
+          thumbnailUrl: "assets/th5.JPG",
+          videoPath: "/home/ubuntu/violence_detection/violence_detection/Avertix_Auth/frontend/assets/Fans Celebration in Unison.mp4",
         },
         { 
           name: "Fight between Cops and Supporters", 
           duration: "0:06",
-          thumbnailUrl: "/assets/th6.JPG",
-          videoPath: "/assets/Football Violence Uncovered - Fights, Camera, Action - S02 EP01 - Action Documentary_36-53_37-30.mp4",
+          thumbnailUrl: "assets/th6.JPG",
+          videoPath: "/home/ubuntu/violence_detection/violence_detection/Avertix_Auth/frontend/assets/Football Violence Uncovered - Fights, Camera, Action - S02 EP01 - Action Documentary_36-53_37-30.mp4",
         },
     ];
         
@@ -1455,261 +1457,257 @@
         showAlert("Welcome to Avertix. Systems online and API connected.", "info"); 
       };
       
-      // Check authentication on page load
-      checkAuthenticationStatus();
-    });
+      // --- AUTHENTICATION JAVASCRIPT ---
+      // Authentication elements
+      const authContainer = document.getElementById('auth-container');
+      const mainApplication = document.getElementById('main-application');
+      const loginForm = document.getElementById('login-form');
+      const registerForm = document.getElementById('register-form');
+      const authLoading = document.getElementById('auth-loading');
+      const loginFormElement = document.getElementById('login-form-element');
+      const registerFormElement = document.getElementById('register-form-element');
+      const showRegisterBtn = document.getElementById('show-register');
+      const showLoginBtn = document.getElementById('show-login');
+      const authThemeDarkBtn = document.getElementById('auth-theme-dark-btn');
+      const authThemeLightBtn = document.getElementById('auth-theme-light-btn');
+      const logoutBtn = document.getElementById('logout-btn');
 
-    // --- AUTHENTICATION JAVASCRIPT ---
-    // Authentication elements
-    const authContainer = document.getElementById('auth-container');
-    const mainApplication = document.getElementById('main-application');
-    const loginForm = document.getElementById('login-form');
-    const registerForm = document.getElementById('register-form');
-    const authLoading = document.getElementById('auth-loading');
-    const loginFormElement = document.getElementById('login-form-element');
-    const registerFormElement = document.getElementById('register-form-element');
-    const showRegisterBtn = document.getElementById('show-register');
-    const showLoginBtn = document.getElementById('show-login');
-    const authThemeDarkBtn = document.getElementById('auth-theme-dark-btn');
-    const authThemeLightBtn = document.getElementById('auth-theme-light-btn');
-
-    // Show/hide authentication forms
-    function showAuthForm(formType) {
-      loginForm.classList.toggle('active-form', formType === 'login');
-      registerForm.classList.toggle('active-form', formType === 'register');
-      authLoading.classList.remove('active-form');
-    }
-
-    function showAuthLoading() {
-      loginForm.classList.remove('active-form');
-      registerForm.classList.remove('active-form');
-      authLoading.classList.add('active-form');
-    }
-
-    // Check authentication status
-    async function checkAuthenticationStatus() {
-      try {
-        const response = await fetch('/auth/status');
-        const data = await response.json();
-        
-        if (data.authenticated) {
-          // User is authenticated, show main app
-          authContainer.style.display = 'none';
-          mainApplication.style.display = 'flex';
-          updateUserInfo(data.user);
-          init(); // Initialize the main app
-        } else {
-          // User not authenticated, show login
-          authContainer.style.display = 'flex';
-          mainApplication.style.display = 'none';
-        }
-      } catch (error) {
-        console.error('Auth status check failed:', error);
-        authContainer.style.display = 'flex';
-        mainApplication.style.display = 'none';
+      // Show/hide authentication forms
+      function showAuthForm(formType) {
+        loginForm.classList.toggle('active-form', formType === 'login');
+        registerForm.classList.toggle('active-form', formType === 'register');
+        authLoading.classList.remove('active-form');
       }
-    }
 
-    // Update user info in the interface
-    function updateUserInfo(user) {
-      const usernameInput = document.getElementById('current-username');
-      const lastLoginInput = document.getElementById('current-last-login');
-      
-      if (usernameInput) {
-        usernameInput.value = user.username;
+      function showAuthLoading() {
+        loginForm.classList.remove('active-form');
+        registerForm.classList.remove('active-form');
+        authLoading.classList.add('active-form');
       }
-      
-      if (lastLoginInput && user.last_login) {
-        const lastLogin = new Date(user.last_login).toLocaleString();
-        lastLoginInput.value = lastLogin;
-      } else if (lastLoginInput) {
-        lastLoginInput.value = 'First login';
-      }
-    }
 
-    // Handle logout
-    async function handleLogout() {
-      try {
-        const response = await fetch('/auth/logout', {
-          method: 'POST'
-        });
-        
-        const data = await response.json();
-        
-        if (data.success) {
-          // Logout successful, show auth screen
-          authContainer.style.display = 'flex';
-          mainApplication.style.display = 'none';
-          showAuthForm('login');
+      // Check authentication status
+      async function checkAuthenticationStatus() {
+        try {
+          const response = await fetch('/auth/status');
+          const data = await response.json();
           
-          // Clear any user data
-          document.getElementById('current-username').value = '';
-          document.getElementById('current-last-login').value = '';
-        } else {
-          showAlert('Logout failed. Please try again.', 'warning');
+          if (data.authenticated) {
+            // User is authenticated, show main app
+            authContainer.style.display = 'none';
+            mainApplication.style.display = 'flex';
+            updateUserInfo(data.user);
+            init(); // Initialize the main app
+          } else {
+            // User not authenticated, show login
+            authContainer.style.display = 'flex';
+            mainApplication.style.display = 'none';
+          }
+        } catch (error) {
+          console.error('Auth status check failed:', error);
+          authContainer.style.display = 'flex';
+          mainApplication.style.display = 'none';
         }
-      } catch (error) {
-        showAlert('Network error during logout.', 'warning');
       }
-    }
 
-    // Handle login
-    async function handleLogin(event) {
-      event.preventDefault();
-      showAuthLoading();
-      
-      const formData = new FormData(event.target);
-      const username = formData.get('username');
-      const password = formData.get('password');
-      
-      if (!username || !password) {
-        showAuthError('Please fill in all fields');
-        showAuthForm('login');
-        return;
+      // Update user info in the interface
+      function updateUserInfo(user) {
+        const usernameInput = document.getElementById('current-username');
+        const lastLoginInput = document.getElementById('current-last-login');
+        
+        if (usernameInput) {
+          usernameInput.value = user.username;
+        }
+        
+        if (lastLoginInput && user.last_login) {
+          const lastLogin = new Date(user.last_login).toLocaleString();
+          lastLoginInput.value = lastLogin;
+        } else if (lastLoginInput) {
+          lastLoginInput.value = 'First login';
+        }
       }
-      
-      try {
-        const response = await fetch('/auth/login', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ username, password })
-        });
+
+      // Handle logout
+      async function handleLogout() {
+        try {
+          const response = await fetch('/auth/logout', {
+            method: 'POST'
+          });
+          
+          const data = await response.json();
+          
+          if (data.success) {
+            // Logout successful, show auth screen
+            authContainer.style.display = 'flex';
+            mainApplication.style.display = 'none';
+            showAuthForm('login');
+            
+            // Clear any user data
+            document.getElementById('current-username').value = '';
+            document.getElementById('current-last-login').value = '';
+          } else {
+            showAlert('Logout failed. Please try again.', 'warning');
+          }
+        } catch (error) {
+          showAlert('Network error during logout.', 'warning');
+        }
+      }
+
+      // Handle login
+      async function handleLogin(event) {
+        event.preventDefault();
+        showAuthLoading();
         
-        const data = await response.json();
+        const formData = new FormData(event.target);
+        const username = formData.get('username');
+        const password = formData.get('password');
         
-        if (data.success) {
-          // Login successful
-          authContainer.style.display = 'none';
-          mainApplication.style.display = 'flex';
-          init(); // Initialize the main app
-        } else {
-          showAuthError(data.message || 'Login failed');
+        if (!username || !password) {
+          showAuthError('Please fill in all fields');
+          showAuthForm('login');
+          return;
+        }
+        
+        try {
+          const response = await fetch('/auth/login', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ username, password })
+          });
+          
+          const data = await response.json();
+          
+          if (data.success) {
+            // Login successful
+            authContainer.style.display = 'none';
+            mainApplication.style.display = 'flex';
+            updateUserInfo(data.user);
+            init(); // Initialize the main app
+          } else {
+            showAuthError(data.message || 'Login failed');
+            showAuthForm('login');
+          }
+        } catch (error) {
+          showAuthError('Network error. Please try again.');
           showAuthForm('login');
         }
-      } catch (error) {
-        showAuthError('Network error. Please try again.');
-        showAuthForm('login');
       }
-    }
 
-    // Handle registration
-    async function handleRegister(event) {
-      event.preventDefault();
-      showAuthLoading();
-      
-      const formData = new FormData(event.target);
-      const username = formData.get('username');
-      const password = formData.get('password');
-      const confirmPassword = formData.get('confirmPassword');
-      
-      if (!username || !password || !confirmPassword) {
-        showAuthError('Please fill in all fields');
-        showAuthForm('register');
-        return;
-      }
-      
-      if (password !== confirmPassword) {
-        showAuthError('Passwords do not match');
-        showAuthForm('register');
-        return;
-      }
-      
-      if (password.length < 6) {
-        showAuthError('Password must be at least 6 characters long');
-        showAuthForm('register');
-        return;
-      }
-      
-      try {
-        const response = await fetch('/auth/register', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ username, password })
-        });
+      // Handle registration
+      async function handleRegister(event) {
+        event.preventDefault();
+        showAuthLoading();
         
-        const data = await response.json();
+        const formData = new FormData(event.target);
+        const username = formData.get('username');
+        const password = formData.get('password');
+        const confirmPassword = formData.get('confirmPassword');
         
-        if (data.success) {
-          showAuthSuccess('Account created successfully! Please sign in.');
-          showAuthForm('login');
-          // Clear the registration form
-          registerFormElement.reset();
-        } else {
-          showAuthError(data.message || 'Registration failed');
+        if (!username || !password || !confirmPassword) {
+          showAuthError('Please fill in all fields');
+          showAuthForm('register');
+          return;
+        }
+        
+        if (password !== confirmPassword) {
+          showAuthError('Passwords do not match');
+          showAuthForm('register');
+          return;
+        }
+        
+        if (password.length < 6) {
+          showAuthError('Password must be at least 6 characters long');
+          showAuthForm('register');
+          return;
+        }
+        
+        try {
+          const response = await fetch('/auth/register', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ username, password })
+          });
+          
+          const data = await response.json();
+          
+          if (data.success) {
+            showAuthSuccess('Account created successfully! Please sign in.');
+            showAuthForm('login');
+            // Clear the registration form
+            registerFormElement.reset();
+          } else {
+            showAuthError(data.message || 'Registration failed');
+            showAuthForm('register');
+          }
+        } catch (error) {
+          showAuthError('Network error. Please try again.');
           showAuthForm('register');
         }
-      } catch (error) {
-        showAuthError('Network error. Please try again.');
-        showAuthForm('register');
       }
-    }
 
-    // Show authentication messages
-    function showAuthError(message) {
-      const existing = document.querySelector('.auth-message');
-      if (existing) existing.remove();
-      
-      const messageDiv = document.createElement('div');
-      messageDiv.className = 'auth-message auth-error';
-      messageDiv.textContent = message;
-      
-      const authCard = document.querySelector('.auth-card');
-      authCard.insertBefore(messageDiv, authCard.firstChild);
-      
-      setTimeout(() => messageDiv.remove(), 5000);
-    }
+      // Show authentication messages
+      function showAuthError(message) {
+        const existing = document.querySelector('.auth-message');
+        if (existing) existing.remove();
+        
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'auth-message auth-error';
+        messageDiv.textContent = message;
+        
+        const authCard = document.querySelector('.auth-card');
+        authCard.insertBefore(messageDiv, authCard.firstChild);
+        
+        setTimeout(() => messageDiv.remove(), 5000);
+      }
 
-    function showAuthSuccess(message) {
-      const existing = document.querySelector('.auth-message');
-      if (existing) existing.remove();
-      
-      const messageDiv = document.createElement('div');
-      messageDiv.className = 'auth-message auth-success';
-      messageDiv.textContent = message;
-      
-      const authCard = document.querySelector('.auth-card');
-      authCard.insertBefore(messageDiv, authCard.firstChild);
-      
-      setTimeout(() => messageDiv.remove(), 5000);
-    }
+      function showAuthSuccess(message) {
+        const existing = document.querySelector('.auth-message');
+        if (existing) existing.remove();
+        
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'auth-message auth-success';
+        messageDiv.textContent = message;
+        
+        const authCard = document.querySelector('.auth-card');
+        authCard.insertBefore(messageDiv, authCard.firstChild);
+        
+        setTimeout(() => messageDiv.remove(), 5000);
+      }
 
-    // Event listeners for authentication
-    loginFormElement.addEventListener('submit', handleLogin);
-    registerFormElement.addEventListener('submit', handleRegister);
-    showRegisterBtn.addEventListener('click', (e) => {
-      e.preventDefault();
-      showAuthForm('register');
-    });
-    showLoginBtn.addEventListener('click', (e) => {
-      e.preventDefault();
-      showAuthForm('login');
-    });
-
-    // Authentication theme toggle
-    authThemeDarkBtn.addEventListener('click', () => {
-      document.body.classList.remove('light-theme');
-      authThemeDarkBtn.classList.add('active-theme');
-      authThemeLightBtn.classList.remove('active-theme');
-    });
-    authThemeLightBtn.addEventListener('click', () => {
-      document.body.classList.add('light-theme');
-      authThemeLightBtn.classList.add('active-theme');
-      authThemeDarkBtn.classList.remove('active-theme');
-    });
-
-    // Logout button event listener
-    document.addEventListener('DOMContentLoaded', () => {
-      const logoutBtn = document.getElementById('logout-btn');
+      // Event listeners for authentication
+      loginFormElement.addEventListener('submit', handleLogin);
+      registerFormElement.addEventListener('submit', handleRegister);
+      showRegisterBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        showAuthForm('register');
+      });
+      showLoginBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        showAuthForm('login');
+      });
       if (logoutBtn) {
         logoutBtn.addEventListener('click', handleLogout);
       }
+
+      // Authentication theme toggle
+      authThemeDarkBtn.addEventListener('click', () => {
+        document.body.classList.remove('light-theme');
+        authThemeDarkBtn.classList.add('active-theme');
+        authThemeLightBtn.classList.remove('active-theme');
+      });
+      authThemeLightBtn.addEventListener('click', () => {
+        document.body.classList.add('light-theme');
+        authThemeLightBtn.classList.add('active-theme');
+        authThemeDarkBtn.classList.remove('active-theme');
+      });
+      
+      // Check authentication on page load to kick things off
+      checkAuthenticationStatus();
+
     });
-  </script>
-  </div> <!-- Close main-application div -->
   </script>
 </body>
 </html>
