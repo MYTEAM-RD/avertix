@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Violence Detection</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <h1>Offline Violence Detection</h1>
+    <input type="file" id="videoFile">
+    <button onclick="uploadVideo()">Analyze Video</button>
+
+    <h3>Prediction Results:</h3>
+    <div id="results"></div>
+    
+    <canvas id="violenceChart" width="600" height="300"></canvas>
+
+    <script>
+        async function uploadVideo() {
+            const fileInput = document.getElementById('videoFile');
+            const file = fileInput.files[0];
+            const formData = new FormData();
+            formData.append("file", file);
+            
+            document.getElementById("results").innerText = "Analyzing... please wait.";
+
+            const response = await fetch("http://51.44.128.157:8000/analyze-upload/", {
+                method: "POST",
+                body: formData
+            });
+
+            const data = await response.json();
+            document.getElementById("results").innerText = JSON.stringify(data.predictions, null, 2);
+            
+            drawChart(data.predictions);
+        }
+
+        function drawChart(predictions) {
+            const ctx = document.getElementById('violenceChart').getContext('2d');
+            const labels = predictions.map((_, i) => i + 1);
+            const dataPoints = predictions.map(p => p * 100); // convert to %
+
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Violence %',
+                        data: dataPoints,
+                        borderColor: 'red',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: { beginAtZero: true, max: 100 }
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Violence Detection</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 30px;
+        }
+
+        h2 {
+            margin-top: 40px;
+        }
+
+        #chart-container {
+            width: 100%;
+            max-width: 800px;
+            margin-top: 30px;
+        }
+
+        video {
+            max-width: 100%;
+            margin-top: 20px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+
+        .btn:disabled {
+            background-color: #999;
+        }
+
+        #processing-message {
+            font-weight: bold;
+            color: darkorange;
+        }
+    </style>
+</head>
+<body>
+
+<h2>Offline Video Analysis</h2>
+<input type="file" id="videoInput">
+<button class="btn" onclick="analyzeVideo()">Analyze</button>
+<button class="btn" onclick="stopOffline()" id="stopOfflineBtn" style="display:none;">Stop</button>
+<p id="processing-message"></p>
+<video id="uploadedVideo" controls></video>
+<div id="chart-container">
+    <canvas id="offlineChart"></canvas>
+</div>
+
+<h2>Real-time Camera Detection</h2>
+<video id="webcam" autoplay playsinline muted></video>
+<p><strong>Current Violence %:</strong> <span id="realtimeValue">0</span></p>
+<button class="btn" onclick="startRealtime()">Start Camera</button>
+<button class="btn" onclick="stopRealtime()" id="stopRealtimeBtn" style="display:none;">Stop</button>
+<div id="chart-container">
+    <canvas id="realtimeChart"></canvas>
+</div>
+
+<script>
+    let offlineChart, realtimeChart;
+    let webcamInterval;
+
+    function analyzeVideo() {
+        const fileInput = document.getElementById('videoInput');
+        const file = fileInput.files[0];
+        if (!file) {
+            alert("Please upload a video first.");
+            return;
+        }
+
+        document.getElementById('processing-message').innerText = "Processing...";
+        document.getElementById('stopOfflineBtn').style.display = "inline";
+
+        const videoElement = document.getElementById('uploadedVideo');
+        videoElement.src = URL.createObjectURL(file);
+        videoElement.load();
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        fetch('/analyze', {
+            method: 'POST',
+            body: formData
+        }).then(response => response.json())
+          .then(data => {
+            document.getElementById('processing-message').innerText = "";
+            drawChart('offlineChart', data.result);
+            document.getElementById('stopOfflineBtn').style.display = "none";
+          }).catch(error => {
+            alert("Error analyzing video: " + error);
+            document.getElementById('processing-message').innerText = "";
+            document.getElementById('stopOfflineBtn').style.display = "none";
+        });
+    }
+
+    function stopOffline() {
+        document.getElementById('processing-message').innerText = "Stopped.";
+        // Logic to stop is skipped as backend would still process once started.
+    }
+
+    function drawChart(canvasId, dataPoints) {
+        const ctx = document.getElementById(canvasId).getContext('2d');
+        const chartData = {
+            labels: dataPoints.map((_, i) => i + 1),
+            datasets: [{
+                label: 'Violence %',
+                data: dataPoints.map(x => (x * 100).toFixed(2)),
+                fill: false,
+                borderColor: 'red',
+                tension: 0.1
+            }]
+        };
+        const config = {
+            type: 'line',
+            data: chartData,
+            options: {
+                scales: {
+                    y: { beginAtZero: true, max: 100 },
+                    x: { title: { display: true, text: 'Window Index' } }
+                }
+            }
+        };
+
+        if (canvasId === "offlineChart") {
+            if (offlineChart) offlineChart.destroy();
+            offlineChart = new Chart(ctx, config);
+        } else {
+            if (realtimeChart) realtimeChart.destroy();
+            realtimeChart = new Chart(ctx, config);
+        }
+    }
+
+    async function startRealtime() {
+        const video = document.getElementById('webcam');
+        const canvas = document.createElement('canvas');
+        const frames = [];
+
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        video.srcObject = stream;
+        document.getElementById('stopRealtimeBtn').style.display = "inline";
+
+        webcamInterval = setInterval(async () => {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            canvas.getContext('2d').drawImage(video, 0, 0);
+
+            const frameData = canvas.toDataURL('image/jpeg');
+            frames.push(frameData);
+
+            if (frames.length === 16) {
+                const payload = JSON.stringify({ frames: frames });
+                frames.length = 0;
+
+                fetch('/predict-realtime', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: payload
+                }).then(res => res.json())
+                  .then(data => {
+                      const val = (data.violence * 100).toFixed(2);
+                      document.getElementById('realtimeValue').innerText = val;
+                      drawChart("realtimeChart", [...(realtimeChart?.data?.datasets[0]?.data || []), val]);
+                  }).catch(err => console.error("Realtime error", err));
+            }
+        }, 200); // ~5 fps
+    }
+
+    function stopRealtime() {
+        clearInterval(webcamInterval);
+        const video = document.getElementById('webcam');
+        const stream = video.srcObject;
+        if (stream) {
+            stream.getTracks().forEach(track => track.stop());
+            video.srcObject = null;
+        }
+        document.getElementById('stopRealtimeBtn').style.display = "none";
+    }
+</script>
+
+</body>
+</html>

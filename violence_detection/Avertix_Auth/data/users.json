@@ -1,0 +1,23 @@
+[
+  {
+    "id": 1,
+    "username": "testuser",
+    "password": "7e6e0c3079a08c5cc6036789b57e951f65f82383913ba1a49ae992544f1b4b6e",
+    "created_at": "2025-09-02T20:11:19.869668",
+    "last_login": "2025-09-02T21:05:02.526592"
+  },
+  {
+    "id": 2,
+    "username": "newuser123",
+    "password": "9878d344400c00f8bab1a4ba1a3488b3ace88aea983e3d94ba1c781e09ba32bb",
+    "created_at": "2025-09-02T20:19:34.629871",
+    "last_login": "2025-09-02T21:00:04.484247"
+  },
+  {
+    "id": 3,
+    "username": "testuser123",
+    "password": "ffc121a2210958bf74e5a874668f3d978d24b6a8241496ccff3c0ea245e4f126",
+    "created_at": "2025-09-02T20:21:28.999394",
+    "last_login": "2025-09-02T20:21:57.696331"
+  }
+]

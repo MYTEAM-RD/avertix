@@ -1,0 +1,7 @@
+torch
+transformers
+opencv-python
+numpy
+fastapi
+uvicorn[standard]
+python-multipart

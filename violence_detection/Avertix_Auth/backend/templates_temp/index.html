@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Visionneuse de Flux Vidéo</title>
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+  <style>
+    body { 
+      background: #111; 
+      color: white; 
+      font-family: sans-serif; 
+      padding: 2rem; 
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    h1 { text-align: center; }
+    form { 
+      margin-bottom: 2rem; 
+      text-align: center;
+    }
+    input[type="text"] {
+      width: 80%; 
+      max-width: 600px;
+      padding: 0.5rem; 
+      font-size: 1rem;
+      border-radius: 4px;
+    }
+    button {
+      padding: 0.5rem 1rem;
+      font-size: 1rem;
+      margin-left: 0.5rem;
+      background: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #45a049;
+    }
+    canvas {
+      width: 640px;
+      height: 360px;
+      max-width: 100%;
+      max-height: 70vh;
+      background: #000;
+      display: block;
+      margin: 1rem auto;
+      border: 4px solid #ff0;
+      box-shadow: 0 0 10px #ff0;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0% { border-color: #ff0; box-shadow: 0 0 10px #ff0; }
+      50% { border-color: #cc0; box-shadow: 0 0 15px #cc0; }
+      100% { border-color: #ff0; box-shadow: 0 0 10px #ff0; }
+    }
+    #error-message {
+      color: red;
+      margin-top: 1rem;
+      text-align: center;
+      display: none;
+      max-width: 600px;
+    }
+    .fallback-img {
+      max-width: 100%;
+      max-height: 70vh;
+      display: none;
+      margin: 1rem auto;
+    }
+  </style>
+</head>
+<body>
+  <h1>Visionneuse de Flux Vidéo</h1>
+  <form method="post">
+    <input type="text" name="stream_url" placeholder="https://...ngrok-free.app/stream1" value="{{ original_stream_url }}">
+    <button type="submit">Lire le Flux</button>
+  </form>
+  <div id="error-message"></div>
+
+  {% if proxy_stream_url %}
+  <canvas id="videoCanvas"></canvas>
+  <img id="fallbackImg" class="fallback-img" alt="Flux MJPEG (secours)">
+  <script>
+    const streamURL = "{{ proxy_stream_url }}";
+    const canvas = document.getElementById('videoCanvas');
+    const ctx = canvas.getContext('2d');
+    const errorMessage = document.getElementById('error-message');
+    const fallbackImg = document.getElementById('fallbackImg');
+
+    function showError(message) {
+      console.error(message);
+      errorMessage.style.display = 'block';
+      errorMessage.textContent = message;
+    }
+
+    function drawLoadingMessage() {
+      ctx.fillStyle = 'white';
+      ctx.font = '20px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('Chargement du flux...', canvas.width / 2, canvas.height / 2);
+      console.log('Affichage du message de chargement');
+    }
+
+    console.log('Chargement du flux proxy :', streamURL);
+    drawLoadingMessage();
+
+    // Vérifier le Content-Type du flux
+    fetch(streamURL, { method: 'HEAD' })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Requête HEAD échouée, statut : ' + response.status);
+        }
+        const contentType = response.headers.get('Content-Type') || 'inconnu';
+        console.log('Content-Type du flux :', contentType);
+        loadStream(contentType);
+      })
+      .catch(err => {
+        console.warn('Échec de la requête HEAD :', err.message);
+        console.log('Tentative de chargement direct du flux');
+        loadStream('inconnu');
+      });
+
+    function loadStream(contentType) {
+      console.log(" Type de contenu reçu :", contentType);
+                           
+      if (contentType.includes('application/vnd.apple.mpegurl')) {
+        console.log('Flux détecté : HLS');
+        const video = document.createElement('video');
+        video.muted = true;
+        video.autoplay = true;
+        video.playsinline = true;
+        video.style.display = 'none';
+        document.body.appendChild(video);
+
+        function setCanvasSize() {
+          canvas.width = video.videoWidth || 640;
+          canvas.height = video.videoHeight || 360;
+          console.log('Taille du canvas ajustée :', canvas.width, 'x', canvas.height);
+        }
+
+        function drawFrame() {
+          if (video.readyState >= video.HAVE_CURRENT_DATA) {
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          }
+          requestAnimationFrame(drawFrame);
+        }
+
+        video.addEventListener('error', (e) => {
+          showError('Erreur de lecture du flux HLS : ' + (e.message || 'Erreur inconnue'));
+        });
+
+        video.addEventListener('loadedmetadata', () => {
+          console.log('Métadonnées HLS chargées, résolution :', video.videoWidth, 'x', video.videoHeight);
+          setCanvasSize();
+          drawFrame();
+        });
+
+        if (video.canPlayType('application/vnd.apple.mpegurl')) {
+          console.log('Utilisation du lecteur HLS natif');
+          video.src = streamURL;
+        } else if (Hls.isSupported()) {
+          console.log('Utilisation de hls.js');
+          const hls = new Hls();
+          hls.on(Hls.Events.ERROR, (event, data) => {
+            showError('Erreur hls.js : ' + data.details);
+          });
+          hls.loadSource(streamURL);
+          hls.attachMedia(video);
+        } else {
+          showError('HLS non supporté par ce navigateur');
+        }
+      } else if (contentType.includes('multipart/x-mixed-replace')) {
+        console.log('Flux détecté : MJPEG');
+        let img = new Image();
+        img.src = streamURL + '?t=' + new Date().getTime();
+        img.alt = 'Flux MJPEG';
+        img.onerror = () => {
+          showError('Impossible de charger le flux MJPEG');
+          console.error('Erreur de chargement de l'image MJPEG');
+          // Activer l'image de secours
+          fallbackImg.src = streamURL;
+          fallbackImg.style.display = 'block';
+          canvas.style.display = 'none';
+          img = null;
+        };
+        img.onload = () => {
+          console.log('Image MJPEG chargée, dimensions :', img.width, 'x', img.height);
+          canvas.width = img.width || 640;
+          canvas.height = img.height || 360;
+          function drawMJPEG() {
+            if (img) {
+              ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            }
+            requestAnimationFrame(drawMJPEG);
+          }
+          drawMJPEG();
+          img = new Image(); // Nouvelle image pour la prochaine frame
+          img.src = streamURL + '?t=' + new Date().getTime();
+          img.onload = drawMJPEG; // Continuer la boucle
+          img.onerror = () => {
+            showError('Perte de connexion au flux MJPEG');
+            img = null;
+          };
+        };
+      } else {
+        console.log('Content-Type inconnu :', contentType);
+        showError('Format de flux non supporté : ' + contentType);
+        // Tenter l'image de secours
+        fallbackImg.src = streamURL;
+        fallbackImg.style.display = 'block';
+        canvas.style.display = 'none';
+      }
+    }
+  </script>
+  {% endif %}
+</body>
+</html>

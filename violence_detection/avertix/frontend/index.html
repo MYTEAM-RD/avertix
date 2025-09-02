@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Avertix Violence Detection</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --accent: #ff6b00;
+      --bg: #f6f7fb;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Inter,Segoe UI,Roboto,sans-serif;background:var(--bg);color:#222;}
+    header{background:#fff;box-shadow:0 2px 6px rgba(0,0,0,.05);padding:.8rem 1.2rem;display:flex;align-items:center;gap:.75rem;}
+    header img{height:40px;width:auto}
+    header h1{margin:0;font-size:1.35rem;font-weight:600}
+
+    /* tabs */
+    .tabs{display:flex;border-bottom:2px solid #ddd;margin-top:.5rem}
+    .tab{padding:.75rem 1.25rem;cursor:pointer;font-weight:600;border-bottom:3px solid transparent;transition:.2s}
+    .tab.active{color:var(--accent);border-color:var(--accent)}
+
+    /* sections */
+    main{max-width:1000px;margin:1.5rem auto;padding:0 1rem}
+    section{display:none;padding-top:1.5rem}
+    section.active{display:block}
+
+    /* dropzone */
+    #dropZone{border:3px dashed #c7c9d6;border-radius:8px;height:300px;display:flex;flex-direction:column;justify-content:center;align-items:center;color:#75788a;font-size:1.05rem;gap:.5rem;transition:.2s}
+    #dropZone.dragover{border-color:var(--accent);background:#fff7f0;color:#ff6b00}
+
+    /* inputs */
+    input[type="text"]{width:100%;padding:.5rem;border:1px solid #ddd;border-radius:6px;font-size:1rem;margin-top:.3rem}
+    label{display:block;font-weight:600;margin-bottom:.2rem}
+
+    /* columns for IP cameras */
+    .columns{display:flex;gap:1rem;justify-content:space-between;}
+    .column{flex:1;}
+    .status-box{background:#fff;padding:.5rem;border-radius:6px;border:1px solid #ddd;margin-top:.5rem}
+
+    button{background:var(--accent);border:none;color:#fff;padding:.55rem 1.3rem;font-weight:600;border-radius:6px;cursor:pointer;transition:.15s}
+    button:hover{opacity:.9}
+    button[disabled]{opacity:.55;cursor:not-allowed}
+
+    video,canvas,img{display:block;margin:1rem auto;max-width:100%}
+    pre{background:#fff;padding:1rem;border-radius:6px;white-space:pre-wrap;overflow-x:auto}
+  </style>
+</head>
+<body>
+  <header>
+    <img src="assets/logo.png" alt="Avertix logo"/>
+    <h1>Violence Detection</h1>
+  </header>
+
+  <main>
+    <!-- TAB HEAD -->
+    <div class="tabs">
+      <div class="tab active" data-tab="fileTab">Video File</div>
+      <div class="tab" data-tab="liveTab">Live Stream</div>
+      <div class="tab" data-tab="ipTab">IP Cameras</div>
+    </div>
+
+    <!-- 1 ▸ FILE TAB  -------------------------------------------------- -->
+    <section id="fileTab" class="active">
+      <p>Upload or record a video, then click <strong>Analyze</strong>.</p>
+
+      <!-- drag‑n‑drop box -->
+      <div id="dropZone">
+        <svg width="48" height="48" fill="currentColor" viewBox="0 0 24 24"><path d="M12 5v14m7-7H5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        <span>Drop video here<br><small>or click to browse</small></span>
+        <input type="file" id="videoFile" accept="video/*" hidden />
+      </div>
+
+      <div style="margin-top:1rem;text-align:center;">
+        <button id="analyzeBtn">Analyze</button>
+      </div>
+
+      <pre id="results"></pre>
+      <canvas id="offlineChart" height="300"></canvas>
+    </section>
+
+    <!-- 2 ▸ LIVE TAB  -------------------------------------------------- -->
+    <section id="liveTab">
+      <p>Start your webcam to detect violence in real‑time.</p>
+      <video id="realtimeVideo" autoplay muted playsinline></video>
+      <div style="text-align:center;margin:1rem 0;display:flex;justify-content:center;gap:.6rem;">
+        <button id="startRealtimeBtn">Start</button>
+        <button id="stopRealtimeBtn" disabled>Stop</button>
+      </div>
+      <canvas id="realtimeChart" height="300"></canvas>
+    </section>
+
+    <!-- 3 ▸ IP CAMERAS TAB  ------------------------------------------- -->
+    <section id="ipTab">
+      <p>Enter two HTTP stream URLs (e.g., ngrok URLs or http://192.168.1.18:8080/video). Border & plot turn red when probability exceeds sensitivity.</p>
+      <div class="columns">
+        <div class="column">
+          <label for="httpUrl1">HTTP URL 1</label>
+          <input type="text" id="httpUrl1" value="https://2384-90-90-61-176.ngrok-free.app/stream1" placeholder="Enter HTTP stream URL"/>
+          <img id="httpOut1" alt="Annotated HTTP Feed 1" style="width: 320px; height: 240px;"/>
+          <canvas id="httpPlot1" height="200"></canvas>
+          <label>Current Probability (HTTP 1)</label>
+          <div class="status-box" id="httpProb1">0.00</div>
+          <label>Processing Status (HTTP 1)</label>
+          <div class="status-box" id="httpStatus1">Idle</div>
+        </div>
+        <div class="column">
+          <label for="httpUrl2">HTTP URL 2</label>
+          <input type="text" id="httpUrl2" value="https://2384-90-90-61-176.ngrok-free.app/stream2" placeholder="Enter HTTP stream URL"/>
+          <img id="httpOut2" alt="Annotated HTTP Feed 2" style="width: 320px; height: 240px;"/>
+          <canvas id="httpPlot2" height="200"></canvas>
+          <label>Current Probability (HTTP 2)</label>
+          <div class="status-box" id="httpProb2">0.00</div>
+          <label>Processing Status (HTTP 2)</label>
+          <div class="status-box" id="httpStatus2">Idle</div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+<script>
+/* ------------------------------------------------------------------
+   TABS
+------------------------------------------------------------------ */
+const tabs = document.querySelectorAll('.tab');
+const sections = document.querySelectorAll('main section');
+
+tabs.forEach(t => t.onclick = () => {
+  tabs.forEach(x => x.classList.remove('active'));
+  sections.forEach(s => s.classList.remove('active'));
+  t.classList.add('active');
+  document.getElementById(t.dataset.tab).classList.add('active');
+});
+
+/* ------------------------------------------------------------------
+   DROP ZONE → INPUT FILE
+------------------------------------------------------------------ */
+const dz   = document.getElementById('dropZone');
+const fileInput = document.getElementById('videoFile');
+
+dz.onclick = () => fileInput.click();
+['dragenter','dragover'].forEach(ev => dz.addEventListener(ev,e=>{e.preventDefault();dz.classList.add('dragover')}));
+['dragleave','drop'].forEach(ev => dz.addEventListener(ev,e=>{e.preventDefault();dz.classList.remove('dragover')}));
+
+dz.addEventListener('drop', e => {
+  if (e.dataTransfer.files.length) fileInput.files = e.dataTransfer.files;
+});
+
+/* ------------------------------------------------------------------
+   OFFLINE ANALYSIS
+------------------------------------------------------------------ */
+let offlineChart;
+const analyzeBtn = document.getElementById('analyzeBtn');
+const resultsEl  = document.getElementById('results');
+
+analyzeBtn.addEventListener('click', analyzeVideo);
+
+async function analyzeVideo(){
+  const file = fileInput.files[0];
+  if(!file) return alert('Choose a video first');
+
+  const url = URL.createObjectURL(file);
+  const tmp = document.createElement('video'); tmp.src=url;
+  await tmp.play().catch(()=>{});
+  const duration = tmp.duration;
+  tmp.pause(); URL.revokeObjectURL(url);
+
+  const fd = new FormData(); fd.append('file',file);
+  resultsEl.textContent='Analyzing…';
+  resetChart('offline');
+
+  try{
+    const resp = await fetch('/analyze-upload/',{method:'POST',body:fd});
+    if(!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const {predictions,fps=30}=await resp.json();
+    plotOffline(predictions,fps,duration);
+  }catch(err){resultsEl.textContent='Error: '+err.message;}
+}
+
+function plotOffline(predictions,fps,duration){
+  const secPerPred = 16/fps;
+  const bucketCt   = Math.ceil(duration);
+  const buckets    = Array.from({length:bucketCt},()=>[]);
+
+  predictions.forEach((p,i)=>{
+    const posSec = (i+0.5)*secPerPred;
+    const idx    = Math.floor(posSec);
+    if(buckets[idx]) buckets[idx].push(p*100);
+  });
+
+  const labels=[],data=[];
+  buckets.forEach((arr,sec)=>{
+    if(arr.length){
+      labels.push(sec);
+      data.push(arr.reduce((a,b)=>a+b,0)/arr.length);
+    }
+  });
+  resultsEl.textContent='';
+
+  const ctx=document.getElementById('offlineChart').getContext('2d');
+  offlineChart = new Chart(ctx,{
+    type:'line',
+    data:{labels,datasets:[{data,label:'Violence %',borderColor:'red',borderWidth:2,pointRadius:0,tension:.15}]},
+    options:{animation:false,scales:{x:{title:{display:true,text:'Seconds'}},y:{beginAtZero:true,max:100,title:{display:true,text:'%'}}},plugins:{legend:{display:false}}}
+  });
+}
+
+/* ------------------------------------------------------------------
+   REALTIME
+------------------------------------------------------------------ */
+let streaming=false,video,canvas,ctx,realtimeChart;
+const startBtn=document.getElementById('startRealtimeBtn');
+const stopBtn =document.getElementById('stopRealtimeBtn');
+
+startBtn.onclick=startRealtime;
+stopBtn.onclick =stopRealtime;
+
+async function startRealtime(){
+  if(streaming) return;
+  streaming=true; startBtn.disabled=true; stopBtn.disabled=false;
+  resetChart('realtime');
+  video=document.getElementById('realtimeVideo');
+  video.srcObject=await navigator.mediaDevices.getUserMedia({video:true});
+  await video.play();
+
+  canvas=document.createElement('canvas');canvas.width=canvas.height=224;ctx=canvas.getContext('2d');
+  captureLoop();
+}
+
+function stopRealtime(){
+  streaming=false; startBtn.disabled=false; stopBtn.disabled=true;
+  if(video&&video.srcObject) video.srcObject.getTracks().forEach(t=>t.stop());
+}
+
+async function captureLoop(){
+  if(!streaming) return;
+  ctx.drawImage(video,0,0,224,224);
+  const blob=await new Promise(r=>canvas.toBlob(r,'image/jpeg',.8));
+  const b64 = await blob.arrayBuffer().then(buf=>btoa(String.fromCharCode(...new Uint8Array(buf))));
+  try{
+    const r=await fetch('/realtime-frame/',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({frame:b64})});
+    if(r.ok){const {prediction}=await r.json();addRealtimePoint(prediction*100);}
+  }catch(err){
+    console.error('Error in captureLoop:', err);
+  }
+  setTimeout(captureLoop,200);
+}
+
+function addRealtimePoint(val){
+  if(!realtimeChart){
+    const ctx=document.getElementById('realtimeChart').getContext('2d');
+    realtimeChart=new Chart(ctx,{type:'line',data:{labels:[],datasets:[{data:[],borderColor:'red',borderWidth:2,pointRadius:0,label:'Violence %',tension:.15}]},options:{animation:false,scales:{y:{beginAtZero:true,max:100}},plugins:{legend:{display:false}}}});
+  }
+  realtimeChart.data.labels.push(realtimeChart.data.labels.length);
+  realtimeChart.data.datasets[0].data.push(val);
+  realtimeChart.update();
+}
+
+/* ------------------------------------------------------------------
+   IP CAMERAS
+------------------------------------------------------------------ */
+let httpStreaming1 = false, httpStreaming2 = false;
+let httpChart1, httpChart2;
+const httpUrl1 = document.getElementById('httpUrl1');
+const httpUrl2 = document.getElementById('httpUrl2');
+const httpOut1 = document.getElementById('httpOut1');
+const httpOut2 = document.getElementById('httpOut2');
+const httpProb1 = document.getElementById('httpProb1');
+const httpProb2 = document.getElementById('httpProb2');
+const httpStatus1 = document.getElementById('httpStatus1');
+const httpStatus2 = document.getElementById('httpStatus2');
+const STREAM_FPS = 5; // Matches 1/STREAM_FPS = 0.2s interval
+const SENSITIVITY = 0.5; // Default sensitivity threshold
+
+httpUrl1.addEventListener('change', () => startHttpStream(1));
+httpUrl2.addEventListener('change', () => startHttpStream(2));
+
+async function startHttpStream(streamId) {
+  
+  const url = streamId === 1 ? httpUrl1.value : httpUrl2.value;
+  const proxiedUrl = `/proxy/?url=${encodeURIComponent(url)}`;
+  const out = streamId === 1 ? httpOut1 : httpOut2;
+  const probEl = streamId === 1 ? httpProb1 : httpProb2;
+  const statusEl = streamId === 1 ? httpStatus1 : httpStatus2;
+  const chartId = streamId === 1 ? 'httpPlot1' : 'httpPlot2';
+
+  // Validate URL
+  if (!url || !url.match(/^https?:\/\/.+$/)) {
+    statusEl.textContent = 'Please enter a valid HTTP/HTTPS stream URL';
+    console.error(`Invalid URL for stream ${streamId}: ${url}`);
+    return;
+  }
+
+  // Stop existing stream
+  if (streamId === 1) httpStreaming1 = false;
+  else httpStreaming2 = false;
+  await new Promise(resolve => setTimeout(resolve, 200));
+
+  // Start new stream
+  if (streamId === 1) httpStreaming1 = true;
+  else httpStreaming2 = true;
+
+  statusEl.textContent = 'Connecting…';
+  out.src = proxiedUrl;  // <-- Affiche directement le flux MJPEG
+
+  resetChart(`http${streamId}`);
+
+  try {
+    await httpStreamLoop(streamId, proxiedUrl, out, probEl, statusEl, chartId);
+  } catch (err) {
+    statusEl.textContent = `Error: ${err.message}`;
+    console.error(`Stream ${streamId} initialization error: ${err.message}`);
+    if (streamId === 1) httpStreaming1 = false;
+    else httpStreaming2 = false;
+  }
+}
+
+async function httpStreamLoop(streamId, url, out, probEl, statusEl, chartId) {
+  let canvas = document.createElement('canvas');
+  canvas.width = canvas.height = 224;
+  let ctx = canvas.getContext('2d');
+
+  while (streamId === 1 ? httpStreaming1 : httpStreaming2) {
+    try {
+      ctx.drawImage(out, 0, 0, 224, 224); // Prend une frame depuis l'image <img>
+
+      const blobForBackend = await new Promise(r => canvas.toBlob(r, 'image/jpeg', 0.7));
+      const b64 = await blobForBackend.arrayBuffer().then(buf => {
+        const uint8Array = new Uint8Array(buf);
+        let binary = '';
+        for (let i = 0; i < uint8Array.length; i++) {
+          binary += String.fromCharCode(uint8Array[i]);
+        }
+        return btoa(binary);
+      });
+
+      const resp = await fetch('/realtime-cam', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'ngrok-skip-browser-warning': 'true'
+        },
+        body: JSON.stringify({ frame: b64, stream_id: streamId })
+      });
+
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}: ${resp.statusText}`);
+
+      const { prediction } = await resp.json();
+      const prob = (prediction * 100).toFixed(2);
+      probEl.textContent = prob;
+      statusEl.textContent = 'Processing';
+
+      if (prediction > SENSITIVITY) {
+        out.style.border = '2px solid red';
+        addHttpPoint(streamId, prob, true);
+      } else {
+        out.style.border = 'none';
+        addHttpPoint(streamId, prob, false);
+      }
+
+    } catch (err) {
+      statusEl.textContent = `Error: ${err.message}`;
+      console.error(`Stream ${streamId} error: ${err.message}`);
+    }
+
+    await new Promise(resolve => setTimeout(resolve, 1000 / STREAM_FPS));
+  }
+
+  out.src = '';
+  canvas = null;
+}
+
+function addHttpPoint(streamId, val, isAboveThreshold) {
+  const chart = streamId === 1 ? httpChart1 : httpChart2;
+  const ctx = document.getElementById(`httpPlot${streamId}`).getContext('2d');
+
+  if (!chart) {
+    const newChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: [],
+        datasets: [{
+          data: [],
+          borderColor: isAboveThreshold ? 'red' : '#888',
+          borderWidth: 2,
+          pointRadius: 0,
+          label: `Violence % (HTTP ${streamId})`,
+          tension: 0.15
+        }]
+      },
+      options: {
+        animation: false,
+        scales: { y: { beginAtZero: true, max: 100 } },
+        plugins: { legend: { display: false } }
+      }
+    });
+    if (streamId === 1) httpChart1 = newChart;
+    else httpChart2 = newChart;
+  } else {
+    chart.data.labels.push(chart.data.labels.length);
+    chart.data.datasets[0].data.push(val);
+    chart.data.datasets[0].borderColor = isAboveThreshold ? 'red' : '#888';
+    chart.update();
+  }
+}
+
+function resetChart(chartId) {
+  const chart = chartId === 'http1' ? httpChart1 : httpChart2;
+  if (chart) {
+    chart.destroy();
+    if (chartId === 'http1') httpChart1 = null;
+    else httpChart2 = null;
+  }
+}
+
+/* ------------------------------------------------------------------
+   UTIL: reset charts
+------------------------------------------------------------------ */
+function resetChart(scope){
+  if(scope === 'offline' && offlineChart) { offlineChart.destroy(); offlineChart = null; }
+  if(scope === 'realtime' && realtimeChart) { realtimeChart.destroy(); realtimeChart = null; }
+  if(scope === 'http1' && httpChart1) { httpChart1.destroy(); httpChart1 = null; }
+  if(scope === 'http2' && httpChart2) { httpChart2.destroy(); httpChart2 = null; }
+}
+</script>
+</body>
+</html>

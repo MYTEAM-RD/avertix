@@ -1,0 +1,5 @@
+{
+  "camera1": "rtsp://alae:Myteam2025@192.168.0.175:554/live/ch1",
+  "camera2": "rtsp://alae:Myteam2025@192.168.0.202:554/live/ch1",
+  "port": 8002
+}

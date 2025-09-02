@@ -1,0 +1,9 @@
+torch
+transformers
+opencv-python
+gradio>=5.0 
+moviepy==1.0.3
+imageio-ffmpeg
+matplotlib
+soundfile
+gradio-webrtc 

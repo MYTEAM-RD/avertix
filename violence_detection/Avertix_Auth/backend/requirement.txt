@@ -1,0 +1,10 @@
+torch
+transformers
+opencv-python
+numpy
+fastapi
+uvicorn[standard]
+python-multipart
+yt-dlp
+boto3
+httpx

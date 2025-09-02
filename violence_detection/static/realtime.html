@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Real-Time Violence Detection</title>
+  <style>
+    /* Basic styling for video and text */
+    #video {
+      width: 320px;
+      height: 240px;
+      background: #000;
+    }
+    #violence-output {
+      font-size: 1.2em;
+      margin-top: 0.5em;
+    }
+  </style>
+</head>
+<body>
+  <h2>Real-Time Violence Detection</h2>
+  <!-- Video element to show webcam feed -->
+  <video id="video" autoplay playsinline muted></video>
+  <!-- Hidden canvas for capturing video frames -->
+  <canvas id="canvas" width="224" height="224" style="display:none;"></canvas>
+  <div id="violence-output">
+    Violence Probability: <span id="violence-percentage">0.00</span>%
+  </div>
+  <button id="start-btn">Start Camera</button>
+
+  <script>
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const startBtn = document.getElementById('start-btn');
+    const violenceSpan = document.getElementById('violence-percentage');
+    let intervalId = null;
+
+    // Draw current video frame to canvas and send to server
+    function sendFrame() {
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      canvas.toBlob(blob => {
+        if (!blob) return;
+        const formData = new FormData();
+        formData.append('frame', blob, 'frame.jpg');
+        fetch('/predict-realtime', { method: 'POST', body: formData })
+          .then(response => {
+            if (!response.ok) {
+              console.error("Frame prediction request failed:", response.status, response.statusText);
+              // Do not attempt to parse JSON if status is not OK
+              return null;
+            }
+            return response.json();
+          })
+          .then(data => {
+            if (!data) return;
+            // Update the violence percentage text if present
+            if (typeof data.violence_probability === 'number') {
+              const percent = (data.violence_probability * 100).toFixed(2);
+              violenceSpan.textContent = percent;
+            } else {
+              console.warn("No violence_probability in response");
+            }
+          })
+          .catch(error => {
+            console.error("Error in /predict-realtime fetch or JSON parsing:", error);
+          });
+      }, 'image/jpeg');
+    }
+
+    // Start the webcam stream and periodic frame sending
+    startBtn.onclick = function() {
+      navigator.mediaDevices.getUserMedia({ video: true })
+        .then(stream => {
+          video.srcObject = stream;
+          video.play();
+          // Begin sending frames at regular intervals (e.g., every 500 ms)
+          if (!intervalId) {
+            intervalId = setInterval(sendFrame, 500);
+          }
+          startBtn.disabled = true;
+        })
+        .catch(err => {
+          console.error("Could not access camera:", err);
+          alert("Error: Unable to access camera.");
+        });
+    };
+  </script>
+</body>
+</html>

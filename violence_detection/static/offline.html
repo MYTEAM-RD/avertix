@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Offline Video Violence Analysis</title>
+  <style>
+    body { font-family: sans-serif; }
+    #result { font-weight: bold; }
+  </style>
+</head>
+<body>
+  <h2>Offline Video Violence Analysis</h2>
+  <p>Select a video file and click "Analyze" to detect violence.</p>
+  <input type="file" id="video-file" accept="video/*" />
+  <button id="analyze-btn">Analyze</button>
+  <p>Violence Probability: <span id="result">N/A</span>%</p>
+
+  <script>
+    const fileInput = document.getElementById('video-file');
+    const analyzeBtn = document.getElementById('analyze-btn');
+    const resultSpan = document.getElementById('result');
+
+    analyzeBtn.onclick = function() {
+      const file = fileInput.files[0];
+      if (!file) {
+        alert("Please select a video file first.");
+        return;
+      }
+      // Optionally, warn if file is very large to avoid long upload times
+      if (file.size > 100 * 1024 * 1024) { // 100 MB threshold
+        console.warn("Selected video is quite large (", (file.size/1024/1024).toFixed(1), "MB ). Upload may fail or take a long time.");
+      }
+      const formData = new FormData();
+      formData.append('video', file);
+      fetch('/analyze', { method: 'POST', body: formData })
+        .then(response => {
+          if (!response.ok) {
+            // If the response is an error (e.g., 413 or 500), handle it
+            console.error("Analyze request failed with status:", response.status, response.statusText);
+            resultSpan.textContent = "Error";
+            return null;
+          }
+          return response.json();
+        })
+        .then(data => {
+          if (!data) {
+            // No data due to error
+            return;
+          }
+          if (typeof data.violence_probability === 'number') {
+            const percent = (data.violence_probability * 100).toFixed(2);
+            resultSpan.textContent = percent;
+          } else if (data.detail) {
+            // If an HTTPException with detail was returned
+            console.error("Analysis error:", data.detail);
+            resultSpan.textContent = "Error";
+          } else {
+            console.warn("Unexpected response format:", data);
+            resultSpan.textContent = "N/A";
+          }
+        })
+        .catch(error => {
+          console.error("Failed to analyze video or parse JSON:", error);
+          resultSpan.textContent = "Error";
+        });
+    };
+  </script>
+</body>
+</html>
